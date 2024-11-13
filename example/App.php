@@ -13,7 +13,7 @@ try {
     $mf->setKeywords(['pdf', 'word', 'excel', 'image']);
     $mf->setTitle('Merged PDF');
     $mf->setSubject('Merged PDF');
-    $mf->setPassword('password');
+    // $mf->setPassword('password');
 
     $files = [
         __DIR__.'/input/Book1.xlsx',

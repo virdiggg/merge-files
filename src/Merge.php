@@ -8,7 +8,6 @@ use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use PhpOffice\PhpWord\Element\{TextRun, Image, Text, TextBreak};
 use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
 use setasign\Fpdi\Tcpdf\Fpdi as TC;
-use setasign\FpdiProtection\FpdiProtection;
 
 defined('APPPATH') or define('APPPATH', '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR);
 
@@ -164,8 +163,14 @@ class Merge
 
         // Output the merged PDF
         $output = $this->getOutputFullPath();
-        $pdf->SetProtection(FpdiProtection::PERM_PRINT | FpdiProtection::PERM_COPY, $this->password, $this->password, 0, null);
-        $pdf->Output($this->getOutputFullPath(), 'F');
+        $pdf->SetProtection(
+            ['print', 'modify', 'copy', 'annot-forms', 'fill-forms', 'assemble', 'print-high'],
+            $this->password,
+            $this->password,
+            0,
+            null
+        );
+        $pdf->Output($output, 'F');
 
         return $output;
     }
