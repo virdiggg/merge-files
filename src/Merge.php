@@ -298,11 +298,38 @@ class Merge
      */
     private function imageToPDF($pdf, $file)
     {
+        // Get image dimensions
         list($width, $height) = getimagesize($file);
+
+        // Check if the image is landscape or portrait
         $orientation = ($width > $height) ? 'L' : 'P';
 
+        // Add the page and use the image with the new dimensions
         $pdf->AddPage($orientation);
-        $pdf->Image($file, 10, 10, 190, 0, '', '', true, false);
+
+        // Get the page size
+        $pageWidth = $pdf->w;
+        $pageHeight = $pdf->h;
+
+        // Calculate aspect ratio
+        $aspectRatio = $width / $height;
+
+        // Calculate the new dimensions to fit the image to the page
+        if ($pageWidth / $pageHeight > $aspectRatio) {
+            // If the page is more square-like or taller, fit the image height to the page height
+            $newHeight = $pageHeight;
+            $newWidth = $pageHeight * $aspectRatio;
+        } else {
+            // If the page is wider, fit the image width to the page width
+            $newWidth = $pageWidth;
+            $newHeight = $pageWidth / $aspectRatio;
+        }
+
+        // Calculate X and Y to center the image on the page
+        $x = ($pageWidth - $newWidth) / 2;  // Center horizontally
+        $y = ($pageHeight - $newHeight) / 2; // Center vertically
+
+        $pdf->Image($file, $x, $y, $newWidth, $newHeight, '', '', true, false);
     }
 
     /**
@@ -345,9 +372,9 @@ class Merge
         $pdf->SetKeywords(join(', ', $this->keywords));
 
         $pdf->fontdata['timesnewroman'] = [
-            'R' => __DIR__ . '/fonts/times.ttf',  // Regular
-            'B' => __DIR__ . '/fonts/timesb.ttf', // Bold
-            'I' => __DIR__ . '/fonts/timesi.ttf', // Italic
+            'R' => __DIR__ . '/fonts/times.ttf',   // Regular
+            'B' => __DIR__ . '/fonts/timesb.ttf',  // Bold
+            'I' => __DIR__ . '/fonts/timesi.ttf',  // Italic
             'BI' => __DIR__ . '/fonts/timesbi.ttf', // Bold Italic
         ];
 
