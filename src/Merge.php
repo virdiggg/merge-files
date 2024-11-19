@@ -7,7 +7,7 @@ use Virdiggg\MergeFiles\Helpers\StrHelper as Str;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use PhpOffice\PhpWord\Element\{TextRun, Image, Text, TextBreak};
 use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
-use setasign\Fpdi\Tcpdf\Fpdi as TC;
+use Mpdf\Mpdf;
 
 defined('APPPATH') or define('APPPATH', '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR);
 
@@ -15,14 +15,14 @@ class Merge
 {
     /**
      * Allowed extensions, you can call it from your controller
-     * 
+     *
      * @param array
      */
     public $allowedExt = ['doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'pdf'];
 
     /**
      * PDF Creator
-     * 
+     *
      * @param string
      */
     private $creator;
@@ -30,7 +30,7 @@ class Merge
 
     /**
      * PDF Author
-     * 
+     *
      * @param string
      */
     private $author;
@@ -38,7 +38,7 @@ class Merge
 
     /**
      * PDF Keywords
-     * 
+     *
      * @param array
      */
     private $keywords = [];
@@ -46,21 +46,21 @@ class Merge
 
     /**
      * PDF Title
-     * 
+     *
      * @param string
      */
     private $title;
 
     /**
      * PDF Subject
-     * 
+     *
      * @param string
      */
     private $subject;
 
     /**
      * PDF Output Name
-     * 
+     *
      * @param string
      */
     private $outputName;
@@ -68,7 +68,7 @@ class Merge
 
     /**
      * PDF Output Path
-     * 
+     *
      * @param string
      */
     private $outputPath;
@@ -79,7 +79,7 @@ class Merge
 
     /**
      * PDF Password
-     * 
+     *
      * @param string
      */
     private $password = '';
@@ -106,33 +106,18 @@ class Merge
 
     /**
      * Merge files to a single PDF
-     * 
+     *
      * @param array $files
-     * 
+     *
      * @return string Output path
      */
     public function mergeToPDF($files)
     {
-        $pdf = new TC();
-        // PDF information
-        $pdf->SetCreator($this->creator);
-        $pdf->SetAuthor($this->author);
-        $pdf->SetTitle($this->title);
-        $pdf->SetSubject($this->subject);
-        $pdf->SetKeywords(join(', ', $this->keywords));
+        $pdf = new Mpdf();
+        $this->configurePDF($pdf);
 
-        // Auto page break
-        $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
-
-        // Font
-        $pdf->SetFont('times', '', 12);
-        $pdf->setHeaderFont([PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN]);
-        $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
-
-        // Generate pages from files
         foreach ($files as $file) {
             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-
             switch ($ext) {
                 case 'doc':
                 case 'docx':
@@ -161,76 +146,110 @@ class Merge
 
         $this->fl->folderPermission($this->outputPath);
 
-        // Output the merged PDF
-        $output = $this->getOutputFullPath();
-        $pdf->SetProtection(
-            ['print', 'modify', 'copy', 'annot-forms', 'fill-forms', 'assemble', 'print-high'],
-            $this->password,
-            $this->password,
-            0,
-            null
-        );
-        $pdf->Output($output, 'F');
+        // Set PDF password (if provided)
+        if (!empty($this->password)) {
+            $pdf->SetProtection([], $this->password);
+        }
 
-        return $output;
+        // Save the merged PDF
+        $outputFilePath = $this->getOutputFullPath();
+        $pdf->Output($outputFilePath, \Mpdf\Output\Destination::FILE);
+
+        return $outputFilePath;
     }
 
     /**
      * Add word to PDF
-     * 
+     *
      * @param object $pdf
      * @param string $file Path file
-     * 
+     *
      * @return void
      */
+
     private function wordToPDF($pdf, $file)
     {
         $phpWord = WordIOFactory::load($file);
 
         foreach ($phpWord->getSections() as $section) {
+            // Determine the page orientation
             $orientation = 'P';
             $properties = $section->getStyle();
-            if ($properties->getOrientation() == 'landscape') {
+            if ($properties->getOrientation() === 'landscape') {
                 $orientation = 'L';
             }
             $pdf->AddPage($orientation);
 
             foreach ($section->getElements() as $element) {
                 if ($element instanceof TextRun) {
+                    $lineContent = ''; // Accumulate text with inline spacing
+                    $paragraphStyle = $element->getParagraphStyle();
+                    $alignment = $paragraphStyle ? ($paragraphStyle->getAlignment() ?: 'justify') : 'justify';
+
+                    // Map alignment styles to mPDF's alignment options
+                    switch ($alignment) {
+                        case 'center':
+                            $pdfAlignment = 'C'; // Center
+                            break;
+                        case 'right':
+                            $pdfAlignment = 'R'; // Right
+                            break;
+                        case 'justify':
+                            $pdfAlignment = 'J'; // Justify
+                            break;
+                        default:
+                            $pdfAlignment = 'L'; // Left
+                            break;
+                    }
+
                     foreach ($element->getElements() as $textElement) {
                         if ($textElement instanceof Text) {
+                            // Retrieve font style
                             $fontStyle = $textElement->getFontStyle();
-                            $pdf->SetFont(
-                                $fontStyle->getName(),
-                                $fontStyle->isBold() ? 'B' : '',
-                                $fontStyle->getSize()
-                            );
-                            $pdf->Write(5, $textElement->getText());
+                            $fontName = $fontStyle ? ($fontStyle->getName() ?: 'timesnewroman') : 'timesnewroman';
+                            $fontSize = $fontStyle ? $fontStyle->getSize() : 12;
+                            $fontWeight = ($fontStyle && $fontStyle->isBold()) ? 'B' : '';
+                            $fontItalic = ($fontStyle && $fontStyle->isItalic()) ? 'I' : '';
+
+                            // Set font dynamically before adding text
+                            $pdf->SetFont($fontName, $fontWeight . $fontItalic, $fontSize);
+
+                            // Add text with a space
+                            $lineContent .= $textElement->getText() . ' ';
                         } elseif ($textElement instanceof TextBreak) {
-                            $pdf->Ln();
+                            // Write accumulated line and reset
+                            $pdf->MultiCell(0, 5, $lineContent, 0, $pdfAlignment);
+                            $lineContent = ''; // Reset line content after a line break
                         }
                     }
-                    $pdf->Ln();
+
+                    // Write any remaining content
+                    if (!empty($lineContent)) {
+                        $pdf->MultiCell(0, 5, $lineContent, 0, $pdfAlignment);
+                        $pdf->Ln(); // End the TextRun with a line break
+                    }
                 }
 
-                // **Updated Image Handling**
+                // Image
                 if ($element instanceof Image) {
                     $imagePath = $element->getSource();
 
                     // Check if image path is valid and accessible
                     if (file_exists($imagePath)) {
+                        // Convert EMU (Word units) to pixels (1 EMU = 1/9525 inch)
                         $width = $element->getStyle()->getWidth() ? $element->getStyle()->getWidth() / 9525 : 40;
                         $height = $element->getStyle()->getHeight() ? $element->getStyle()->getHeight() / 9525 : 40;
 
-                        // Adjust units to pixels
+                        // Adjust units to match mPDF's pixel scaling (0.75 factor for DPI adjustment)
                         $width = $width * 0.75;
                         $height = $height * 0.75;
 
+                        // Add the image to the PDF
                         $pdf->Image($imagePath, $pdf->GetX(), $pdf->GetY(), $width, $height);
-                        $pdf->Ln($height + 5);
+                        $pdf->Ln($height + 5); // Adjust cursor position
                     } else {
                         // Log or print error if image path is not valid
-                        error_log("Image path not found: " . $imagePath, 0, __DIR__);
+                        throw new \Exception("Image path not found: " . $imagePath);
                     }
                 }
             }
@@ -239,10 +258,10 @@ class Merge
 
     /**
      * Add excel to PDF
-     * 
+     *
      * @param object $pdf
      * @param string $file Path file
-     * 
+     *
      * @return void
      */
     private function excelToPDF($pdf, $file)
@@ -250,77 +269,104 @@ class Merge
         $spreadsheet = SpreadsheetIOFactory::load($file);
         $sheet = $spreadsheet->getActiveSheet();
 
-        $pdf->AddPage();
-
         $html = '<table border="1" cellpadding="4" cellspacing="0">';
-
         foreach ($sheet->toArray() as $row) {
             $html .= '<tr>';
             foreach ($row as $cell) {
-                $html .= '<td>' . htmlspecialchars($cell) . '</td>';
+                $html .= '<td>' . htmlspecialchars($this->str->clean($cell ?: '')) . '</td>';
             }
             $html .= '</tr>';
         }
-
         $html .= '</table>';
 
-        $pdf->writeHTML($html, true, false, true, false, '');
+        // Determine orientation based on sheet dimensions
+        $columnCount = count($sheet->getColumnDimensions());
+        $rowCount = count($sheet->toArray());
+        $orientation = ($columnCount > $rowCount) ? 'L' : 'P';
+
+        $pdf->AddPage($orientation);
+        $pdf->WriteHTML($html);
     }
 
     /**
      * Add image to PDF
-     * 
+     *
      * @param object $pdf
      * @param string $file Path file
-     * 
+     *
      * @return void
      */
     private function imageToPDF($pdf, $file)
     {
-        $bMargin = $pdf->getBreakMargin();
-        $auto_page_break = $pdf->getAutoPageBreak();
-        $pdf->SetAutoPageBreak(false, 0);
-
         list($width, $height) = getimagesize($file);
-        $orientation = $width > $height ? 'L' : 'P';
+        $orientation = ($width > $height) ? 'L' : 'P';
 
-        // Set page orientation based on section style
         $pdf->AddPage($orientation);
-
-        $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
-        $pdf->SetHeaderMargin(0);
-        $pdf->SetFooterMargin(0);
-
-        $pdf->Image($file, 0, 0, 210, 297, '', '', '', false, 300, '', false, false, 0);
-
-        $pdf->SetAutoPageBreak($auto_page_break, $bMargin);
-        $pdf->setPageMark();
+        $pdf->Image($file, 10, 10, 190, 0, '', '', true, false);
     }
 
     /**
      * Add PDF to PDF
-     * 
+     *
      * @param object $pdf
      * @param string $file Path file
-     * 
+     *
      * @return void
      */
     private function PDFToPDF($pdf, $file)
     {
-        $pages = $pdf->setSourceFile($file);
-        for ($i = 1; $i <= $pages; $i++) {
-            $tplIdx = $pdf->importPage($i);
-            $template = $pdf->getTemplateSize($tplIdx);
+        $pageCount = $pdf->setSourceFile($file);
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $templateId = $pdf->importPage($i);
+            $templateSize = $pdf->getTemplateSize($templateId);
 
-            // Set page orientation based on section style
-            $pdf->AddPage($template['orientation']);
-            $pdf->useTemplate($tplIdx);
+            // Determine orientation based on template dimensions
+            $orientation = ($templateSize['width'] > $templateSize['height']) ? 'L' : 'P';
+
+            $pdf->AddPage($orientation);
+            $pdf->useTemplate($templateId);
         }
     }
 
     /**
+     * Set PDF Metadata
+     *
+     * @param object $pdf
+     *
+     * @return void
+     */
+    private function configurePDF($pdf)
+    {
+        // Metadata
+        $pdf->SetTitle($this->title);
+        $pdf->SetAuthor($this->author);
+        $pdf->SetCreator($this->creator);
+        $pdf->SetSubject($this->subject);
+        $pdf->SetKeywords(join(', ', $this->keywords));
+
+        $pdf->fontdata['timesnewroman'] = [
+            'R' => __DIR__ . '/fonts/times.ttf',  // Regular
+            'B' => __DIR__ . '/fonts/timesb.ttf', // Bold
+            'I' => __DIR__ . '/fonts/timesi.ttf', // Italic
+            'BI' => __DIR__ . '/fonts/timesbi.ttf', // Bold Italic
+        ];
+
+        // Page settings
+        $pdf->autoPageBreak = true;
+
+        // Font settings
+        // $pdf->SetFont('times', '', 12);
+        $pdf->SetDefaultFont('timesnewroman');
+        $pdf->defaultheaderfontsize = 10;
+        $pdf->defaultheaderfontstyle = 'B';
+        $pdf->defaultfooterfontsize = 8;
+        $pdf->defaultfooterfontstyle = 'I';
+        $pdf->SetDefaultFont('courier');
+    }
+
+    /**
      * Parse output file name
-     * 
+     *
      * @return string
      */
     private function getOutputFullPath()
@@ -330,9 +376,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setAuthor($text = self::AUTHOR)
@@ -342,9 +388,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setCreator($text = self::CREATOR)
@@ -354,9 +400,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setOutputPath($text = self::FILES_PATH)
@@ -366,9 +412,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setOutputName($text = self::OUTPUT_NAME)
@@ -378,9 +424,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param array $keywords
-     * 
+     *
      * @return void
      */
     public function setKeywords($keywords = self::PDF_KEYWORDS)
@@ -390,9 +436,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setTitle($text)
@@ -402,9 +448,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setSubject($text)
@@ -414,9 +460,9 @@ class Merge
 
     /**
      * Set PDF properties
-     * 
+     *
      * @param string $text
-     * 
+     *
      * @return void
      */
     public function setPassword($text)
