@@ -9,7 +9,7 @@ use PhpOffice\PhpWord\Element\{TextRun, Image, Text, TextBreak};
 use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
 use Mpdf\Mpdf;
 
-defined('APPPATH') or define('APPPATH', '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR);
+defined('APPPATH') or define('APPPATH', dirname(dirname(dirname(dirname(dirname(__FILE__))))) . DIRECTORY_SEPARATOR);
 
 class Merge
 {
@@ -113,7 +113,9 @@ class Merge
      */
     public function mergeToPDF($files)
     {
-        $pdf = new Mpdf();
+        $this->fl->folderPermission($this->outputPath);
+
+        $pdf = new Mpdf(['tempDir' => $this->outputPath]);
         $this->configurePDF($pdf);
 
         foreach ($files as $file) {
@@ -143,8 +145,6 @@ class Merge
                     throw new \Exception("Unsupported file type: $ext");
             }
         }
-
-        $this->fl->folderPermission($this->outputPath);
 
         // Set PDF password (if provided)
         if (!empty($this->password)) {
