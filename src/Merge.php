@@ -114,7 +114,7 @@ class Merge
      */
     public function mergeToPDF($files = [])
     {
-        if (count($files) < 1) {
+        if (count((array) $files) < 1) {
             throw new \Exception('No files to merge.');
         }
 
