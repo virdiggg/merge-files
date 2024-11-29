@@ -108,11 +108,16 @@ class Merge
      * Merge files to a single PDF
      *
      * @param array $files
+     * @throws Exception
      *
      * @return string Output path
      */
-    public function mergeToPDF($files)
+    public function mergeToPDF($files = [])
     {
+        if (count($files) < 1) {
+            throw new \Exception('No files to merge.');
+        }
+
         $this->fl->folderPermission($this->outputPath);
 
         $pdf = new Mpdf(['tempDir' => $this->outputPath]);
