@@ -352,10 +352,26 @@ class Merge
             $templateId = $pdf->importPage($i);
             $templateSize = $pdf->getTemplateSize($templateId);
 
-            // Determine orientation based on template dimensions
-            $orientation = ($templateSize['width'] > $templateSize['height']) ? 'L' : 'P';
+            $widthMm = $templateSize['width'];
+            $heightMm = $templateSize['height'];
 
-            $pdf->AddPage($orientation);
+            // Determine orientation based on template dimensions
+            if ($widthMm > $heightMm) {
+                // Swap width and height
+                $widthMm = $widthMm + $heightMm;
+                $heightMm = $widthMm - $heightMm;
+                $widthMm = $widthMm - $heightMm;
+
+                $orientation = 'L';
+            } else {
+                $orientation = 'P';
+            }
+
+            // $pdf->AddPage($orientation, [$widthMm, $heightMm]);
+            $pdf->AddPageByArray(array(
+                'orientation' => $orientation,
+                'newformat' => [$widthMm, $heightMm],
+            ));
             $pdf->useTemplate($templateId);
         }
     }
