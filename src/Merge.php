@@ -357,7 +357,7 @@ class Merge
 
             // Determine orientation based on template dimensions
             if ($widthMm > $heightMm) {
-                // Swap width and height
+                // Swap width and height if landscape
                 $widthMm = $widthMm + $heightMm;
                 $heightMm = $widthMm - $heightMm;
                 $widthMm = $widthMm - $heightMm;
@@ -367,7 +367,6 @@ class Merge
                 $orientation = 'P';
             }
 
-            // $pdf->AddPage($orientation, [$widthMm, $heightMm]);
             $pdf->AddPageByArray([
                 'orientation' => $orientation,
                 'newformat' => [$widthMm, $heightMm],
