@@ -368,10 +368,10 @@ class Merge
             }
 
             // $pdf->AddPage($orientation, [$widthMm, $heightMm]);
-            $pdf->AddPageByArray(array(
+            $pdf->AddPageByArray([
                 'orientation' => $orientation,
                 'newformat' => [$widthMm, $heightMm],
-            ));
+            ]);
             $pdf->useTemplate($templateId);
         }
     }
