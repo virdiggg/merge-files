@@ -143,9 +143,46 @@ class Merge
                     break;
 
                 case 'pdf':
-                    $this->PDFToPDF($pdf, $file);
-                    break;
+                    $filepdf = fopen($file, "r");
+                    if ($filepdf) {
+                        // Try to read the first line of the file
+                        $firstLine = fgets($filepdf);
+                        fclose($filepdf);
 
+                        preg_match_all('!\d+!', $firstLine, $matches);
+                        $pdfversion = implode('.', $matches[0]);
+
+                        // Check if the PDF version is greater than 1.4.
+                        // If so, use Ghostscript to convert it to a compatible version.
+                        // PDF version 1.4 is the maximum version supported by mPDF.
+                        if ($pdfversion > "1.4") {
+                            try {
+                                // Check if Ghostscript is installed.
+                                shell_exec("gs --version");
+                            } catch (\Exception $e) {
+                                throw new \Exception("Ghostscript is not installed. Please install Ghostscript to merge PDF files with version greater than 1.4.");
+                            }
+
+                            $oldFileName = basename($file);
+                            $newFile = $this->str->before($file, $oldFileName) . time() .'_v14.pdf';
+
+                            // Convert the PDF to version 1.4
+                            shell_exec('gs -dBATCH -dNOPAUSE -dCompatibilityLevel=1.4 -q -sDEVICE=pdfwrite -sOutputFile="' . $newFile . '" "' . $file . '"');
+
+                            unset($oldFileName, $firstLine, $matches, $pdfversion);
+
+                            // Use the new file
+                            $file = $newFile;
+                        }
+
+                        $this->PDFToPDF($pdf, $file);
+
+                        // Remove the temporary file
+                        @unlink($newFile);
+                    } else {
+                        throw new \Exception("Error reading file: $file");
+                    }
+                    break;
                 default:
                     throw new \Exception("Unsupported file type: $ext");
             }

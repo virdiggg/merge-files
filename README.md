@@ -10,6 +10,12 @@
 ```bash
 composer require virdiggg/merge-files
 ```
+- Install [Ghostscript](https://ghostscript.readthedocs.io/en/gs10.04.0/Install.html) and make sure it can be called in command promp with `gs`. You will get something like this when you type `gs`.
+```sh
+$ gs
+$ GPL Ghostscript 10.04.0 (2024-09-18)
+$ GS >
+```
 - Create function to call this library
 ```php
 <?php

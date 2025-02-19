@@ -16,6 +16,7 @@ try {
     // $mf->setPassword('password');
 
     $files = [
+        __DIR__.'/input/new_pdf.pdf',
         __DIR__.'/input/Book1.xlsx',
         __DIR__.'/input/download.pdf',
         __DIR__.'/input/word.docx',
