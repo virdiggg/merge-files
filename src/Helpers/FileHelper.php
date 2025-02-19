@@ -4,13 +4,6 @@ namespace Virdiggg\MergeFiles\Helpers;
 
 class FileHelper
 {
-    /**
-     * File Pointer.
-     *
-     * @param object $filePointer
-     */
-    public $filePointer;
-
     public function __construct()
     {
     }
@@ -43,5 +36,17 @@ class FileHelper
             // @chgrp($path, $owner);
             umask($old);
         }
+    }
+
+    /**
+     * Open file with mode.
+     *
+     * @param string $file
+     *
+     * @return void
+     */
+    public function removeFile($file)
+    {
+        @unlink($file);
     }
 }

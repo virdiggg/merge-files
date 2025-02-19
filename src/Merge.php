@@ -178,7 +178,7 @@ class Merge
                         $this->PDFToPDF($pdf, $file);
 
                         // Remove the temporary file
-                        @unlink($newFile);
+                        $this->fl->removeFile($file);
                     } else {
                         throw new \Exception("Error reading file: $file");
                     }
