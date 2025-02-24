@@ -92,6 +92,21 @@ class Merge
     private $str; // String
     private $fl; // File
 
+    /**
+     * PDF Permissions
+     * Allowed permissions: ['print', 'modify', 'copy', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-highres']
+     * 
+     * @param array
+     */
+    private $permissions = ['print', 'modify', 'copy', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-highres'];
+
+    /**
+     * Used permissions when merging files
+     *
+     * @param array
+     */
+    private $usedPermissions = [];
+
     public function __construct()
     {
         $this->creator = self::CREATOR;
@@ -122,6 +137,15 @@ class Merge
 
         $pdf = new Mpdf(['tempDir' => $this->outputPath]);
         $this->configurePDF($pdf);
+
+        // Set PDF password (if provided)
+        if (!empty($this->password)) {
+            $pdf->SetProtection($this->usedPermissions, $this->password);
+        } else {
+            if (!empty($this->usedPermissions)) {
+                throw new \Exception('Password is required to set permissions.');
+            }
+        }
 
         foreach ($files as $file) {
             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
@@ -190,11 +214,6 @@ class Merge
                 default:
                     throw new \Exception("Unsupported file type: $ext");
             }
-        }
-
-        // Set PDF password (if provided)
-        if (!empty($this->password)) {
-            $pdf->SetProtection([], $this->password);
         }
 
         // Save the merged PDF
@@ -547,7 +566,7 @@ class Merge
     }
 
     /**
-     * Set PDF properties
+     * Set PDF password
      *
      * @param string $text
      *
@@ -556,5 +575,34 @@ class Merge
     public function setPassword($text)
     {
         $this->password = $this->str->clean($text);
+    }
+
+    /**
+     * Set PDF permissions
+     *
+     * @param array $list
+     *
+     * @return void
+     */
+    public function setPermissions($list = [])
+    {
+        foreach ((array) $list as $permission) {
+            $this->checkIfPermissionExists($permission);
+        }
+        $this->usedPermissions = array_values(array_unique(array_merge($this->usedPermissions, (array) $list)));
+    }
+
+    /**
+     * Check if the permission exists
+     *
+     * @param string $permission
+     *
+     * @return void
+     */
+    private function checkIfPermissionExists($permission)
+    {
+        if (!in_array($permission, $this->permissions)) {
+            throw new \Exception("Invalid permission: $permission");
+        }
     }
 }

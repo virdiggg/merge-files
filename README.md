@@ -33,16 +33,29 @@ try {
     // $mf->setKeywords(['pdf', 'word', 'excel', 'image']);
     $mf->setTitle('Merged PDF'); // Mandatory
     $mf->setSubject('Merged PDF'); // Mandatory
-    // $mf->setPassword('password');
+    // $mf->setPassword('password'); // Mandatory if Permission is set
+    // $mf->setPermissions(['copy']); // Optional, must be an array
 
     $files = [
+        __DIR__.'/input/new_pdf.pdf',
         __DIR__.'/input/Book1.xlsx',
         __DIR__.'/input/download.pdf',
         __DIR__.'/input/word.docx',
-        __DIR__.'/input/img.jpg'
+        __DIR__.'/input/Wikipedia-logo-v2.png'
     ];
     $mf->mergeToPDF($files);
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage();
 }
 ```
+
+## Permission List
+You can use any of the options listed below. Use `[]` (an empty array) if you do not want to set any permissions.
+- `copy`
+- `print`
+- `modify`
+- `annot-forms`
+- `fill-forms`
+- `extract`
+- `assemble`
+- `print-highres`

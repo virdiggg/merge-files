@@ -14,6 +14,8 @@ try {
     $mf->setTitle('Merged PDF');
     $mf->setSubject('Merged PDF');
     // $mf->setPassword('password');
+    // ['copy', 'print', 'modify', 'annot-forms', 'fill-forms', 'extract', 'assemble', 'print-highres'] or [] empty array
+    // $mf->setPermissions(['copy']);
 
     $files = [
         __DIR__.'/input/new_pdf.pdf',
