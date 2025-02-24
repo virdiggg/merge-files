@@ -152,6 +152,8 @@ class Merge
                         preg_match_all('!\d+!', $firstLine, $matches);
                         $pdfversion = implode('.', $matches[0]);
 
+                        $newFile = null;
+
                         // Check if the PDF version is greater than 1.4.
                         // If so, use Ghostscript to convert it to a compatible version.
                         // PDF version 1.4 is the maximum version supported by mPDF.
@@ -178,7 +180,9 @@ class Merge
                         $this->PDFToPDF($pdf, $file);
 
                         // Remove the temporary file
-                        $this->fl->removeFile($newFile);
+                        if (!is_null($newFile)) {
+                            $this->fl->removeFile($newFile);
+                        }
                     } else {
                         throw new \Exception("Error reading file: $file");
                     }
