@@ -27,12 +27,9 @@ class FileHelper
         }
 
         // File or directory is not exist
-        if (file_exists($filename) === false) {
+        if (file_exists($filename) === false || is_readable($filename) === false) {
             return false;
         }
-        // if (file_exists($filename) === false || is_readable($filename) === false) {
-        //     return false;
-        // }
 
         try {
             $filehandle = fopen($filename, 'r');
