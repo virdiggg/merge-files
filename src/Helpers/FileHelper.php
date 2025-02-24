@@ -9,6 +9,47 @@ class FileHelper
     }
 
     /**
+     * Check if file exists and is readable.
+     * 
+     * @param string $filename
+     * @return boolean
+     */
+    public function fileExists($filename)
+    {
+        // Not readable
+        if (is_readable($filename) === false) {
+            return false;
+        }
+
+        // Not a file or directory
+        if (is_file($filename) === false && is_dir($filename) === false) {
+            return false;
+        }
+
+        // File or directory is not exist
+        if (file_exists($filename) === false) {
+            return false;
+        }
+        // if (file_exists($filename) === false || is_readable($filename) === false) {
+        //     return false;
+        // }
+
+        try {
+            $filehandle = fopen($filename, 'r');
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        // File corrupted
+        if ($filehandle === false) {
+            return false;
+        }
+
+        fclose($filehandle);
+        return true;
+    }
+
+    /**
      * Create folder with 0755 (rwxr-xr-x) permission if doesn't exist.
      * If exists, change its permission to 0755 (rwxrwxrwx).
      * Owner default to www-data:www-data.

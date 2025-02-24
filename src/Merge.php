@@ -148,6 +148,11 @@ class Merge
         }
 
         foreach ($files as $file) {
+            $oldFileName = basename($file);
+            if ($this->fl->fileExists($file) === false) {
+                throw new \Exception('File ' . $oldFileName . ' does not exist or is not readable.');
+            }
+
             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
             switch ($ext) {
                 case 'doc':
@@ -174,14 +179,14 @@ class Merge
                         fclose($filepdf);
 
                         preg_match_all('!\d+!', $firstLine, $matches);
-                        $pdfversion = implode('.', $matches[0]);
+                        $pdfversion = (float) implode('.', $matches[0]);
 
                         $newFile = null;
 
                         // Check if the PDF version is greater than 1.4.
                         // If so, use Ghostscript to convert it to a compatible version.
                         // PDF version 1.4 is the maximum version supported by mPDF.
-                        if ($pdfversion > "1.4") {
+                        if ($pdfversion > (float) "1.4") {
                             try {
                                 // Check if Ghostscript is installed.
                                 shell_exec("gs --version");
@@ -189,23 +194,16 @@ class Merge
                                 throw new \Exception("Ghostscript is not installed. Please install Ghostscript to merge PDF files with version greater than 1.4.");
                             }
 
-                            $oldFileName = basename($file);
                             $newFile = $this->str->before($file, $oldFileName) . time() .'_v14.pdf';
 
                             // Convert the PDF to version 1.4
                             shell_exec('gs -dBATCH -dNOPAUSE -dCompatibilityLevel=1.4 -q -sDEVICE=pdfwrite -sOutputFile="' . $newFile . '" "' . $file . '"');
 
                             unset($oldFileName, $firstLine, $matches, $pdfversion);
-
                             // Use the new file
-                            $file = $newFile;
-                        }
-
-                        $this->PDFToPDF($pdf, $file);
-
-                        // Remove the temporary file
-                        if (!is_null($newFile)) {
-                            $this->fl->removeFile($newFile);
+                            $this->PDFToPDF($pdf, $newFile);
+                        } else {
+                            $this->PDFToPDF($pdf, $file);
                         }
                     } else {
                         throw new \Exception("Error reading file: $file");
