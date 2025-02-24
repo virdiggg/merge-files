@@ -147,6 +147,8 @@ class Merge
             }
         }
 
+        $oldFiles = [];
+
         foreach ($files as $file) {
             $oldFileName = basename($file);
             if ($this->fl->fileExists($file) === false) {
@@ -194,7 +196,7 @@ class Merge
                                 throw new \Exception("Ghostscript is not installed. Please install Ghostscript to merge PDF files with version greater than 1.4.");
                             }
 
-                            $newFile = $this->str->before($file, $oldFileName) . time() .'_v14.pdf';
+                            $newFile = $this->str->before($file, $oldFileName) . 'temp_' . time() . '_' . rand() .'_v14.pdf';
 
                             // Convert the PDF to version 1.4
                             shell_exec('gs -dBATCH -dNOPAUSE -dCompatibilityLevel=1.4 -q -sDEVICE=pdfwrite -sOutputFile="' . $newFile . '" "' . $file . '"');
@@ -202,6 +204,8 @@ class Merge
                             unset($oldFileName, $firstLine, $matches, $pdfversion);
                             // Use the new file
                             $this->PDFToPDF($pdf, $newFile);
+
+                            $oldFiles[] = $newFile;
                         } else {
                             $this->PDFToPDF($pdf, $file);
                         }
@@ -217,6 +221,12 @@ class Merge
         // Save the merged PDF
         $outputFilePath = $this->getOutputFullPath();
         $pdf->Output($outputFilePath, \Mpdf\Output\Destination::FILE);
+
+        if (count($oldFiles) > 0) {
+            foreach ($oldFiles as $oldFile) {
+                $this->fl->removeFile($oldFile);
+            }
+        }
 
         return $outputFilePath;
     }
