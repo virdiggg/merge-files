@@ -4,6 +4,7 @@
 
 ## Not support image inside docx/doc
 ## I don't plan to update this library in the meantime
+## `mbstring` extension is needed
 
 ### HOW TO USE
 - Install this library with composer
