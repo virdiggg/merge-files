@@ -156,7 +156,7 @@ try {
 
 You may configure PDF permissions using the following options.
 
-Use an empty array `[]` if you do not want to restrict permissions.
+Passing an empty array `[]` will disable all permissions, preventing actions such as copying, printing, modifying, or extracting content from the generated PDF.
 
 Available permissions:
 
@@ -176,6 +176,12 @@ $mf->setPermissions([
     'copy',
     'print'
 ]);
+```
+
+Disable all permissions:
+
+```php
+$mf->setPermissions([]);
 ```
 
 ---
