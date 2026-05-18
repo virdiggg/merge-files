@@ -8,9 +8,7 @@ Unlike many PDF merging utilities that fail on newer PDF structures, this librar
 
 ---
 
-<img src="https://img.shields.io/packagist/php-v/virdiggg/merge-files" />
-<img src="https://img.shields.io/badge/codeigniter--version-3-green" />
-<img src="https://img.shields.io/github/license/virdiggg/merge-files" />
+<img src="https://img.shields.io/packagist/php-v/virdiggg/merge-files" /><img src="https://img.shields.io/badge/codeigniter--version-3-green" /><img src="https://img.shields.io/github/license/virdiggg/merge-files" />
 
 ---
 
